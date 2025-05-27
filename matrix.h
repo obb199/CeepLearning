@@ -3,9 +3,9 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 #include <stdlib.h>
 #include <time.h>
-#include <math.h>
 #include <omp.h>
 
 #define M_E 2.7182818284590452354

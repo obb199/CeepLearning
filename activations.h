@@ -4,5 +4,8 @@
 #include "matrix.h"
 
 bool activation_relu(matrix *);
+//bool activation_leaky_relu(matrix *);
+bool activation_sigmoid(matrix *);
+//bool softmax(matrix *);
 
 #endif

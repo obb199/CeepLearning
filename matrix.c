@@ -1,6 +1,5 @@
 #include "matrix.h"
 
-
 double** pointer_allocation(int rows, int cols){
     if (rows <= 0 || cols <= 0){
         return NULL;
@@ -65,10 +64,11 @@ bool matrix_print(matrix * m){
         }
         printf("\n");
     }
+    
+    printf("\n");
 
     return true;
 }
-
 
 bool matrix_random_init(double min_value, double max_value, int seed, int precision, int rows, int cols, matrix *m){
     if (max_value == min_value || m == NULL){
@@ -85,9 +85,10 @@ bool matrix_random_init(double min_value, double max_value, int seed, int precis
 
     if (seed != -1){
         srand(seed);
-    }else{
-        srand(time(NULL));
     }
+    
+    int pot = 10;
+    for (int i = 0; i < precision; i++) pot *= 10;
 
     double fractional_part_of_min_value = min_value - (int)min_value;
     double fractional_part_of_max_value = max_value - (int)max_value;
@@ -95,7 +96,7 @@ bool matrix_random_init(double min_value, double max_value, int seed, int precis
     for (int i = 0; i < m->rows; i++){
         for (int j = 0; j < m->cols; j++){
             m->values[i][j] = rand()%((int)max_value - (int)min_value) + (int)min_value; //integer part
-            m->values[i][j] += (rand()%(int)(pow(10, precision)))/pow(10, precision) + (fractional_part_of_min_value - fractional_part_of_max_value); //fractional part
+            m->values[i][j] += (float)(rand()%(int)(pot))/pot + (fractional_part_of_min_value - fractional_part_of_max_value); //fractional part
         }
     }
 
