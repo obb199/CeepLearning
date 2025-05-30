@@ -3,7 +3,7 @@
 
 #include "matrix.h"
 
-typedef struct{
+struct dense_layer{
     int n_inputs;
     int n_outputs;
     double learning_rate;
@@ -14,11 +14,14 @@ typedef struct{
     matrix *input_grads;
     matrix *output_grads;
     
-}dense_layer;
+    bool (*forward)(struct dense_layer *, matrix *); 
+    bool (*backward)(struct dense_layer *, matrix *);
+    
+};
 
-bool dense_layer_init(dense_layer *, int, int, double);
-bool feedforward(dense_layer *, matrix *);
-bool backpropagation(dense_layer *, matrix *);
+bool dense_layer_init(struct dense_layer *, int, int, double);
+bool dense_layer_feedforward(struct dense_layer *, matrix *);
+bool dense_layer_backpropagation(struct dense_layer *, matrix *);
 
 
 #endif

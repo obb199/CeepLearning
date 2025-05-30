@@ -7,8 +7,10 @@ double** pointer_allocation(int rows, int cols){
 
     double **matrix_pointer = malloc(rows * sizeof(double *));
 
-    if (matrix_pointer == NULL) return NULL;
-
+    if (matrix_pointer == NULL){
+      return NULL;
+    }
+    
     for (int i = 0; i < rows; i++){
         matrix_pointer[i] = malloc(cols * sizeof(double));
         if (matrix_pointer[i] == NULL) return NULL;
@@ -18,12 +20,16 @@ double** pointer_allocation(int rows, int cols){
 }
 
 
-bool pointer_desallocation(int rows, double** matrix_pointer){
+bool pointer_deallocation(int rows, double **matrix_pointer) {
     if (rows <= 0 || matrix_pointer == NULL) return false;
 
-    for(int i = 0; i < rows; i++){
-        if (matrix_pointer[i] != NULL) free(matrix_pointer[i]);
+    for (int i = 0; i < rows; i++) {
+        if (matrix_pointer[i] != NULL) {
+            free(matrix_pointer[i]);
+            matrix_pointer[i] = NULL;
+        }
     }
+    free(matrix_pointer);
     return true;
 }
 
@@ -42,14 +48,13 @@ bool matrix_init(int rows, int cols, matrix *m){
 }
 
 
-bool matrix_desallocation(matrix *m){
-    if (m == NULL) return false;
+bool matrix_desallocation(matrix *m) {
+    if (m == NULL || m->values == NULL) return false;
 
-    pointer_desallocation(m->rows, m->values);
-    free(m->values);
+    pointer_deallocation(m->rows, m->values);
+    m->values = NULL; // Set to NULL to avoid dangling pointer in the structure
 
     return true;
-
 }
 
 
@@ -92,10 +97,13 @@ bool matrix_random_init(double min_value, double max_value, int seed, int precis
 
     double fractional_part_of_min_value = min_value - (int)min_value;
     double fractional_part_of_max_value = max_value - (int)max_value;
-
-    for (int i = 0; i < m->rows; i++){
-        for (int j = 0; j < m->cols; j++){
-            m->values[i][j] = rand()%((int)max_value - (int)min_value) + (int)min_value; //integer part
+    const double fractional_range = fractional_part_of_max_value - fractional_part_of_min_value;
+    const int int_range = (int)max_value - (int)min_value;
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
+            m->values[i][j] = rand()%(int_range) + (int)min_value; //integer part
             m->values[i][j] += (float)(rand()%(int)(pot))/pot + (fractional_part_of_min_value - fractional_part_of_max_value); //fractional part
         }
     }
@@ -110,9 +118,13 @@ bool matrix_sum(matrix *m1, matrix *m2, matrix *m3){
         m1->rows != m3->rows || m1->cols != m3->cols){
         return false;
     }
-
-    for(int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for(int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m3->values[i][j] = m1->values[i][j] + m2->values[i][j];
         }
     }
@@ -127,9 +139,13 @@ bool matrix_subtraction(matrix *m1, matrix *m2, matrix *m3){
         m1->rows != m3->rows || m1->cols != m3->cols){
         return false;
     }
-
-    for(int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for(int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m3->values[i][j] = m1->values[i][j] - m2->values[i][j];
         }
     }
@@ -145,9 +161,13 @@ bool matrix_sum_columns(matrix *m1, matrix *m2){
     }
 
     if (!matrix_zeros_init(1, m1->cols, m2)) return false;
-
-    for (int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m2->values[0][j] += m1->values[i][j];
         }
     }
@@ -163,9 +183,13 @@ bool matrix_sum_column_by_line(matrix *m1, matrix *m2, matrix *m3){
        m2->rows != 1){
         return false;
     }
-
-    for (int i = 0; i < m1->rows ; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows ; i++){
+        for (int j = 0; j < cols; j++){
             m3->values[i][j] = m1->values[i][j] + m2->values[0][j];
         }
     }
@@ -181,10 +205,15 @@ bool matrix_multiplication(matrix *m1, matrix *m2, matrix *m3){
         m2->cols != m3->cols){
         return false;
     }
-
-    for (register int i = 0; i < m1->rows; i++){
-        for (register int j = 0; j < m2->cols; j++){
-            for (register int k = 0; k < m1->cols; k++){
+    
+    const int i_limit = m1->rows;
+    const int j_limit = m2->cols;
+    const int k_limit = m1->cols;
+    
+    #pragma omp parallel for
+    for (register int i = 0; i < i_limit; i++){
+        for (register int j = 0; j < j_limit; j++){
+            for (register int k = 0; k < k_limit; k++){
                 m3->values[i][j] +=  m1->values[i][k] * m2->values[k][j];
             }
         }
@@ -198,9 +227,13 @@ bool matrix_multiplication_by_constant(matrix *m1, double constant){
     if (m1 == NULL){
         return false;
     }
-
-    for (int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+  
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m1->values[i][j] = constant*m1->values[i][j];
         }
     }
@@ -215,9 +248,13 @@ bool matrix_hadamart_product(matrix *m1, matrix *m2, matrix *m3){
         m1->cols != m2->cols || m1->cols != m3->cols){
         return false;
     }
-
-    for (int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m3->values[i][j] = m1->values[i][j] * m2->values[i][j];
         }
     }
@@ -231,9 +268,13 @@ bool matrix_transposition(matrix *m1, matrix *m2){
         m1->rows != m2->cols || m1->cols != m2->rows){
         return false;
     }
-
-    for (int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m2->values[j][i] = m1->values[i][j];
         }
     }
@@ -248,9 +289,10 @@ bool matrix_zeros_init(int rows, int cols, matrix *m1){
     }
 
     matrix_init(rows, cols, m1);
-
-    for (int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m1->values[i][j] = 0;
         }
     }
@@ -266,9 +308,10 @@ bool matrix_ones_init(int rows, int cols, matrix *m1){
     }
 
     matrix_init(rows, cols, m1);
-
-    for (int i = 0; i < m1->rows; i++){
-        for (int j = 0; j < m1->cols; j++){
+    
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
             m1->values[i][j] = 1.0;
         }
     }
@@ -283,7 +326,8 @@ bool matrix_identity_init(int dim, matrix *m1){
     }
 
     matrix_init(dim, dim, m1);
-
+    
+    #pragma omp parallel for
     for (int i = 0; i < dim; i++){
         for (int j = 0; j < dim; j++){
             if (i == j){
@@ -311,6 +355,7 @@ bool matrix_randomize_lines(int iterations, int seed, matrix *m1){
 
     int line1 = 0, line2 = 0;
     double aux;
+    
     for(int i = 0; i < iterations; i++){
         line1 = rand()%m1->rows;
         line2 = rand()%m1->rows;
@@ -394,5 +439,21 @@ bool matrix_reshape(matrix *m1, matrix *m2){
         }
     }
 
+    return true;
+}
+
+bool matrix_copy_elements(matrix * m1, matrix m2){
+    if (m1 == NULL || m1->rows != m2.rows || m1->cols != m2.cols) return false;
+    
+    const int rows = m1->rows;
+    const int cols = m1->cols;
+    
+    #pragma omp parallel for
+    for(int i = 0; i < rows; i++){
+      for(int j = 0; j < cols; j++){
+          m1->values[i][j] = m2.values[i][j];
+        }
+    }
+    
     return true;
 }

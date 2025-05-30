@@ -1,6 +1,6 @@
 #include "sgd.h"
 
-bool SGD_apply_grads(dense_layer * layer){
+bool SGD_apply_grads(struct dense_layer * layer){
     matrix *d_weights = malloc(sizeof(matrix));
     matrix *d_biases = malloc(sizeof(matrix));
     matrix tranposed_inputs;

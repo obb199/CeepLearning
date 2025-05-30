@@ -1,6 +1,6 @@
 #include "dense_layer.h"
 
-bool dense_layer_init(dense_layer * layer, int n_inputs, int n_outputs, double learning_rate){
+bool dense_layer_init(struct dense_layer * layer, int n_inputs, int n_outputs, double learning_rate){
     layer->n_inputs = n_inputs;
     layer->n_outputs = n_outputs;
     layer->learning_rate = learning_rate;
@@ -22,10 +22,13 @@ bool dense_layer_init(dense_layer * layer, int n_inputs, int n_outputs, double l
     layer->input_grads = NULL;
     layer->output_grads = NULL;
     
+    layer->forward = dense_layer_feedforward;
+    layer->backward = dense_layer_backpropagation;
+    
     return true;  
 }
 
-bool feedforward(dense_layer * layer, matrix * inputs){
+bool dense_layer_feedforward(struct dense_layer * layer, matrix * inputs){
     if (layer == NULL) return false;
     if (inputs == NULL) return false;
 
@@ -61,25 +64,40 @@ bool feedforward(dense_layer * layer, matrix * inputs){
     return true;
 }
 
-bool backpropagation(dense_layer * layer, matrix * grads){
+bool dense_layer_backpropagation(struct dense_layer * layer, matrix * grads){
     if (layer == NULL) return false;
     if (grads == NULL) return false;
     
-    if (layer->input_grads != NULL) matrix_desallocation(layer->input_grads);
-    layer->input_grads = grads;
-    if (layer->output_grads != NULL) matrix_desallocation(layer->output_grads);
-    
-    matrix *output_grads = malloc(sizeof(matrix));;
+    matrix *output_grads = malloc(sizeof(matrix));
     matrix_init(grads->rows, layer->weights->rows, output_grads);
-    
-    matrix *transposed_weights = malloc(sizeof(matrix));
-    matrix_init(layer->weights->cols, layer->weights->rows, transposed_weights);
-    
-    matrix_transposition(layer->weights, transposed_weights);
-    
-    matrix_multiplication(grads, transposed_weights, output_grads);
-    
     layer->output_grads = output_grads;
+    
+    matrix transposed_weights;
+    matrix_init(layer->weights->cols, layer->weights->rows, &transposed_weights);
+    matrix_transposition(layer->weights, &transposed_weights);
+    
+    matrix_multiplication(grads, &transposed_weights, output_grads);
+    
+    if (layer->input_grads != NULL && (layer->input_grads->rows != grads->rows || layer->input_grads->cols != grads->cols)){
+      matrix_desallocation(layer->input_grads);
+      layer->input_grads = grads;
+      
+      matrix_desallocation(layer->input_grads);
+      
+      matrix *output_grads = malloc(sizeof(matrix));
+      layer->output_grads = output_grads;
+      matrix_init(grads->rows, layer->weights->rows, output_grads);
+  
+      layer->output_grads = output_grads;
+    }else{
+        if (layer->input_grads == NULL){
+            matrix *input_grads = malloc(sizeof(matrix));
+            matrix_init(grads->rows, grads->cols, input_grads);
+            layer->input_grads = input_grads;
+        }
+        matrix_copy_elements(layer->input_grads, *grads);
+        matrix_copy_elements(layer->output_grads, *output_grads);
+    }
     
     if (layer->input_grads == NULL) return false;
     if (layer->output_grads == NULL) return false;

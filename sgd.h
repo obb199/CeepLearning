@@ -3,6 +3,6 @@
 
 #include "dense_layer.h"
 
-bool SGD_apply_grads(dense_layer *);
+bool SGD_apply_grads(struct dense_layer *);
 
 #endif

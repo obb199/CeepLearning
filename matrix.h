@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
@@ -39,6 +40,6 @@ bool matrix_randomize_lines(int, int, matrix *); //check
 bool matrix_minmax(matrix *); //check
 bool matrix_copy(matrix *, matrix *); //check
 bool matrix_reshape(matrix *, matrix *); //check
-
+bool matrix_copy_elements(matrix *, matrix);
 #endif // __MATRIX_H
 
